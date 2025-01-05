@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #f3f4f6;
+    }
+
+    .sidebar {
+      width: 256px;
+      background-color: #1f2937;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      height: 100%;
+      transition: width 0.3s;
+      justify-content: space-between;
+    }
+
+    .sidebar.collapsed {
+      width: 64px;
+    }
+
+    .sidebar .header {
+      padding: 16px;
+      border-bottom: 1px solid #374151;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sidebar .header span {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .sidebar .header button {
+      background-color: #374151;
+      border: none;
+      padding: 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .sidebar .header button:hover {
+      background-color: #4b5563;
+    }
+
+    .sidebar nav {
+      padding: 16px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .sidebar nav a {
+      display: block;
+      padding: 8px 16px;
+      margin-bottom: 8px;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      background-color: #1f2937;
+      font-weight: bold; /* Added for bold links */
+    }
+
+    .sidebar nav a:hover {
+      background-color: #374151;
+    }
+
+    .dropdown {
+      margin-bottom: 8px;
+    }
+
+    .dropdown .dropdown-btn {
+      display: block;
+      padding: 8px 16px;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      background-color: #1f2937;
+      cursor: pointer;
+      font-weight: bold; /* Added for bold dropdown button */
+    }
+
+    .dropdown .dropdown-btn:hover {
+      background-color: #374151;
+    }
+
+    .dropdown .dropdown-content {
+      display: none;
+      flex-direction: column;
+      margin-left: 16px;
+    }
+
+    .dropdown .dropdown-content a {
+      padding: 8px;
+      margin-bottom: 4px;
+      background-color: #374151;
+      font-weight: bold; /* Added for bold dropdown links */
+    }
+
+    .dropdown.open .dropdown-content {
+      display: flex;
+    }
+
+    .sidebar .profile {
+      padding: 16px;
+      border-top: 1px solid #374151;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sidebar .profile img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+    }
+
+    .sidebar .profile span {
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .main-content {
+      margin-left: 256px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      transition: margin-left 0.3s;
+    }
+
+    .main-content header {
+      background-color: white;
+      padding: 16px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .main-content header .profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .main-content header .profile img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+    }
+
+    .main-content header .profile span {
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .main-content header h1 {
+      font-size: 20px;
+    }
+
+    .main-content header .actions button {
+      background-color: #e5e7eb;
+      border: none;
+      padding: 8px;
+      border-radius: 50%;
+      margin-left: 8px;
+      cursor: pointer;
+    }
+
+    .main-content header .actions button:hover {
+      background-color: #d1d5db;
+    }
+
+    .main-content main {
+      padding: 16px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .main-content main .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .main-content main .cards .card {
+      background-color: white;
+      padding: 16px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+    }
+
+    .main-content main .updates {
+      background-color: white;
+      padding: 16px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="header">
+      <span>Logo</span>
+      <button id="toggleSidebar">➖</button>
+    </div>
+    <nav>
+      <a href="#">Dashboard</a>
+      <a href="#">Utilizatori</a>
+      <a href="#">Setări</a>
+      <div class="dropdown" id="dropdownMenu">
+        <div class="dropdown-btn">Raportări ▼</div>
+        <div class="dropdown-content">
+          <a href="#">Raport 1</a>
+          <a href="#">Raport 2</a>
+          <a href="#">Raport 3</a>
+        </div>
+      </div>
+    </nav>
+    <div class="profile">
+      <img src="https://via.placeholder.com/40" alt="Profile Picture">
+      <span>Ady</span>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content" id="mainContent">
+    <!-- Header -->
+    <header>
+      <h1>Admin Panel</h1>
+      <div class="profile">
+        <img src="https://via.placeholder.com/32" alt="Profile Picture">
+        <span>Ady</span>
+      </div>
+      <div class="actions">
+        <button>🌙</button>
+        <button>🔔</button>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <main>
+      <div class="cards">
+        <div class="card">Card 1</div>
+        <div class="card">Card 2</div>
+        <div class="card">Card 3</div>
+      </div>
+
+      <div class="updates">
+        <h2>Ultimele updatări</h2>
+        <p>Aici poți adăuga conținut despre activități recente.</p>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const toggleButton = document.getElementById('toggleSidebar');
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const dropdownMenu = document.getElementById('dropdownMenu');
+
+    toggleButton.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+      mainContent.style.marginLeft = sidebar.classList.contains('collapsed') ? '64px' : '256px';
+    });
+
+    dropdownMenu.addEventListener('click', () => {
+      dropdownMenu.classList.toggle('open');
+    });
+  </script>
+</body>
+</html>
