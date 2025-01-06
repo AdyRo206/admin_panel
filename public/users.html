@@ -22,6 +22,7 @@
     </table>
 
     <script>
+        
         async function fetchUsers() {
             const response = await fetch('http://localhost:5501/users', {
                 method: 'GET',
@@ -34,7 +35,7 @@
             if (data.success) {
                 const users = data.users;
                 const userTableBody = document.getElementById('userTableBody');
-                userTableBody.innerHTML = ''; // Curăță tabelul înainte
+                userTableBody.innerHTML = ''; 
     
                 users.forEach(user => {
                     const row = document.createElement('tr');
@@ -45,10 +46,11 @@
                         <td>${user.is_approved ? 'Aprobat' : 'Neaprobat'}</td>
                         <td>
                             <button onclick="resetPassword('${user.id}')">Modifică parola</button>
+                            <button onclick="deleteUser('${user.id}')">Șterge cont</button>
                             <button onclick="toggleApproval('${user.id}', ${user.is_approved})">
                                 ${user.is_approved ? 'Dezaprobă' : 'Aprobă'}
                             </button>
-                            <button onclick="toggleRole(${user.id}, '${user.role === 'admin' ? 'user' : 'admin'}')">
+                            <button onclick="toggleRole('${user.id}', '${user.role === 'admin' ? 'user' : 'admin'}')">
                                 Schimbă rol
                             </button>
                         </td>
@@ -61,76 +63,95 @@
         }
     
         async function resetPassword(userId) {
-            const pin = prompt("Introdu PIN-ul pentru a continua:");
+            const pin = prompt("Introdu PIN-ul de siguranță:");
             if (!pin) {
                 alert("PIN-ul este obligatoriu!");
                 return;
             }
-    
-            const newPassword = prompt("Introdu noua parolă:");
+            const newPassword = prompt("Introduceți noua parolă:");
+
             if (!newPassword) {
-                alert("Parola este obligatorie!");
+                alert("Parola nu poate fi goală!");
                 return;
             }
-    
-            const response = await fetch(`http://localhost:5501/reset-password`, {
+
+            const response = await fetch('http://localhost:5501/reset-password', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': localStorage.getItem('authToken'),
                 },
-                body: JSON.stringify({ userId, pin, newPassword }),
+                body: JSON.stringify({ userId, newPassword, pin }),
             });
-    
-            const result = await response.json();
-            if (result.success) {
-                alert("Parola a fost modificată cu succes!");
-            } else {
-                alert(result.message || "Eroare la modificarea parolei.");
-            }
+
+            const data = await response.json();
+            alert(data.message || 'Eroare la resetarea parolei');
+            fetchUsers(); 
         }
     
+        async function deleteUser(userId) {
+            const pin = prompt("Introdu PIN-ul de siguranță pentru a șterge contul:");
+
+            if (!pin) {
+                alert("PIN-ul este obligatoriu!");
+                return;
+            }
+
+            const response = await fetch('http://localhost:5501/delete-user', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': localStorage.getItem('authToken'),
+                },
+                body: JSON.stringify({ userId, pin }),
+            });
+
+            const data = await response.json();
+            alert(data.message || 'Eroare la ștergerea utilizatorului');
+            fetchUsers(); 
+        }
+
         async function toggleApproval(userId, currentStatus) {
-            const confirmation = confirm(`Sigur vrei să ${currentStatus ? 'dezaprobi' : 'aprobi'} acest cont?`);
-            if (!confirmation) return;
-    
-            const response = await fetch(`http://localhost:5501/toggle-approval`, {
+            const pin = prompt("Introduceți PIN-ul de siguranță pentru a confirma modificarea:");
+            if (pin !== '1234') {
+                alert("PIN incorect.");
+                return;
+            }
+
+            const response = await fetch('http://localhost:5501/toggle-approval', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': localStorage.getItem('authToken'),
                 },
-                body: JSON.stringify({ userId, newStatus: !currentStatus }),
+                body: JSON.stringify({ userId, newStatus: !currentStatus, pin }),
             });
-    
-            const result = await response.json();
-            if (result.success) {
-                alert(`Contul a fost ${!currentStatus ? 'aprobat' : 'dezaprobat'} cu succes.`);
-                fetchUsers(); // Actualizează lista
-            } else {
-                alert(result.message || "Eroare la actualizarea statusului.");
-            }
+
+            const data = await response.json();
+            alert(data.message || 'Eroare la aprobarea utilizatorului');
+            fetchUsers();
         }
-
+    
         async function toggleRole(userId, newRole) {
-    const token = localStorage.getItem('authToken');
-    const response = await fetch(`http://localhost:5501/toggleRole/${userId}`, {
-        method: 'PUT',
-        headers: {
-            'Authorization': token,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ role: newRole }),
-    });
+            const pin = prompt("Introduceți PIN-ul de siguranță pentru a confirma schimbarea rolului:");
+            if (pin !== '1234') {
+                alert("PIN incorect.");
+                return;
+            }
 
-    const data = await response.json();
-    if (data.success) {
-        alert(`Rolul utilizatorului a fost schimbat în ${newRole}!`);
-        location.reload();  // Reîncarcă pagina pentru a reflecta modificările
-    } else {
-        console.error('Eroare la schimbarea rolului:', data.error);
-    }
-}
+            const response = await fetch('http://localhost:5501/toggle-role', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': localStorage.getItem('authToken'),
+                },
+                body: JSON.stringify({ userId, newRole, pin }),
+            });
+
+            const data = await response.json();
+            alert(data.message || 'Eroare la schimbarea rolului');
+            fetchUsers();
+        }
     
         fetchUsers();
     </script>

@@ -4,27 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Înregistrare</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <h2>Înregistrare utilizator</h2>
-    <form id="registerForm">
-        <label for="username">Username:</label>
-        <input type="text" id="username" required><br><br>
-
-        <label for="password">Parola:</label>
-        <input type="password" id="password" required><br><br>
-
-        <label for="firstName">Prenume:</label>
-        <input type="text" id="firstName" required><br><br>
-
-        <label for="lastName">Nume:</label>
-        <input type="text" id="lastName" required><br><br>
-
-        <label for="email">Email:</label>
-        <input type="email" id="email" required><br><br>
-
-        <button type="submit">Înregistrează-te</button>
-    </form>
+<body class="register">
+    <div class="register-panel">
+        <h2>Înregistrare utilizator</h2>
+        <form id="registerForm">
+            <div class="input-group">
+                <div class="register_input-container">
+                    <span class="material-symbols-outlined iconn">person</span>
+                    <input type="text" id="username" placeholder="Username" required>
+                </div>
+                <div class="register_input-container">
+                    <span class="material-symbols-outlined iconn">encrypted</span>
+                    <input type="password" id="password" placeholder="Password" required>
+                </div>
+            </div>
+    
+            <div class="input-group">
+                <div class="register_input-container">
+                    <span class="material-symbols-outlined iconn">badge</span>
+                    <input type="text" id="firstName" placeholder="First Name" required>
+                </div>
+                <div class="register_input-container">
+                    <span class="material-symbols-outlined iconn">id_card</span>
+                    <input type="text" id="lastName" placeholder="Last Name" required>
+                </div>
+            </div>
+    
+            <div class="register_input-container">
+                <span class="material-symbols-outlined iconn">email</span>
+                <input type="email" id="email" placeholder="Email" required>
+            </div>
+    
+            <button type="submit" class="register-btn">Register</button>
+            <div class="register-links">
+                <span>Ai deja cont? </span><a href="login.html">Conecteaza-te</a>
+            </div>
+        </form>
+    </div>
 
     <script>
         document.getElementById('registerForm').addEventListener('submit', async function(event) {
@@ -66,3 +84,7 @@
     </script>
 </body>
 </html>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+  rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">

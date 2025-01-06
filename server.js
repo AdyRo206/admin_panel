@@ -9,6 +9,8 @@ const cors = require('cors');
 const app = express();
 const PORT = 5501;
 
+const ADMIN_PIN = process.env.ADMIN_PIN || '1234'; // PIN default
+
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
@@ -147,7 +149,7 @@ app.post('/register', (req, res) => {
 });
 
 app.get('/users', authenticateAdmin, (req, res) => {
-  const query = 'SELECT * FROM users ORDER BY id DESC'; 
+  const query = 'SELECT * FROM users ORDER BY id DESC';
   db.query(query, (err, results) => {
     if (err) {
       console.error('Eroare la obținerea utilizatorilor:', err);
@@ -158,82 +160,113 @@ app.get('/users', authenticateAdmin, (req, res) => {
   });
 });
 
-app.put('/approve/:id', authenticateAdmin, (req, res) => {
-  const { id } = req.params;
+app.post('/reset-password', authenticateAdmin, (req, res) => {
+  const { userId, newPassword, pin } = req.body;
 
-  const query = 'UPDATE users SET is_approved = true WHERE id = ?';
-  db.query(query, [id], (err, result) => {
+  if (pin !== ADMIN_PIN) {
+    return res.status(403).json({ success: false, message: "PIN incorect." });
+  }
+
+  if (!userId || !newPassword) {
+    return res.status(400).json({ success: false, message: "Datele trimise sunt invalide." });
+  }
+
+  bcrypt.hash(newPassword, 10, (err, hashedPassword) => {
     if (err) {
-      console.error('Eroare la aprobare utilizator:', err);
-      return res.status(500).json({ success: false, error: 'Eroare la server.' });
+      console.error('Eroare la criptarea parolei:', err);
+      return res.status(500).json({ success: false, message: 'Eroare la server.' });
     }
 
-    res.json({ success: true, message: 'Utilizator aprobat!' });
+    const query = 'UPDATE users SET password = ? WHERE id = ?';
+    db.query(query, [hashedPassword, userId], (err, result) => {
+      if (err) {
+        console.error('Eroare la actualizarea parolei:', err);
+        return res.status(500).json({ success: false, error: 'Eroare la server.' });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ success: false, message: 'Utilizatorul nu a fost găsit.' });
+      }
+
+      res.json({ success: true, message: 'Parola a fost actualizată cu succes.' });
+    });
   });
 });
 
-app.put('/toggleRole/:id', authenticateAdmin, (req, res) => {
-  const { id } = req.params;
-  const { role } = req.body; 
+app.post('/toggle-role', authenticateAdmin, (req, res) => {
+  const { userId, newRole, pin } = req.body;
+
+  if (pin !== ADMIN_PIN) {
+    return res.status(403).json({ success: false, message: "PIN incorect." });
+  }
+
+  if (!userId || !newRole) {
+    return res.status(400).json({ success: false, message: "Datele trimise sunt invalide." });
+  }
 
   const query = 'UPDATE users SET role = ? WHERE id = ?';
-  db.query(query, [role, id], (err, result) => {
+  db.query(query, [newRole, userId], (err, result) => {
     if (err) {
       console.error('Eroare la schimbarea rolului:', err);
       return res.status(500).json({ success: false, error: 'Eroare la server.' });
     }
 
-    res.json({ success: true, message: 'Rolul utilizatorului a fost schimbat!' });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Utilizatorul nu a fost găsit.' });
+    }
+
+    res.json({ success: true, message: `Rolul utilizatorului a fost schimbat în ${newRole}.` });
   });
 });
 
-// Resetare parolă
-app.post('/reset-password', authenticateAdminOrUser, async (req, res) => {
-    const { userId, pin, newPassword } = req.body;
+app.post('/toggle-approval', authenticateAdmin, (req, res) => {
+  const { userId, newStatus, pin } = req.body;
 
-    if (!userId || !pin || !newPassword) {
-        return res.status(400).json({ success: false, message: "Toate câmpurile sunt obligatorii." });
+  if (pin !== ADMIN_PIN) {
+    return res.status(403).json({ success: false, message: "PIN incorect." });
+  }
+
+  if (!userId || typeof newStatus !== 'boolean') {
+    return res.status(400).json({ success: false, message: "Datele trimise sunt invalide." });
+  }
+
+  const query = 'UPDATE users SET is_approved = ? WHERE id = ?';
+  db.query(query, [newStatus, userId], (err, result) => {
+    if (err) {
+      console.error('Eroare la aprobarea utilizatorului:', err);
+      return res.status(500).json({ success: false, error: 'Eroare la server.' });
     }
-
-    // Verificare PIN (simulăm că PIN-ul e stocat în baza de date)
-    const user = await prisma.users.findUnique({ where: { id: userId } });
-    if (!user) {
-        return res.status(404).json({ success: false, message: "Utilizatorul nu există." });
-    }
-
-    if (user.pin !== pin) {
-        return res.status(403).json({ success: false, message: "PIN incorect." });
-    }
-
-    // Schimbare parolă
-    const hashedPassword = bcrypt.hashSync(newPassword, 10);
-    await prisma.users.update({
-        where: { id: userId },
-        data: { password: hashedPassword },
-    });
-
-    res.json({ success: true, message: "Parola a fost actualizată cu succes." });
-});
-
-// Aprobare / Dezaprobare cont
-app.post('/toggle-approval', authenticateAdminOrUser, async (req, res) => {
-    const { userId, newStatus } = req.body;
-
-    if (!userId || typeof newStatus !== 'boolean') {
-        return res.status(400).json({ success: false, message: "Datele trimise sunt invalide." });
-    }
-
-    // Actualizare status aprobare
-    await prisma.users.update({
-        where: { id: userId },
-        data: { is_approved: newStatus },
-    });
 
     res.json({ success: true, message: `Statusul utilizatorului a fost actualizat.` });
+  });
 });
 
+app.delete('/delete-user', authenticateAdmin, (req, res) => {
+  const { userId, pin } = req.body;
 
-// Start server
+  if (!userId || !pin) {
+    return res.status(400).json({ success: false, message: 'ID-ul utilizatorului și PIN-ul sunt obligatorii.' });
+  }
+
+  if (pin !== ADMIN_PIN) {
+    return res.status(403).json({ success: false, message: 'PIN incorect.' });
+  }
+
+  const query = 'DELETE FROM users WHERE id = ?';
+  db.query(query, [userId], (err, result) => {
+    if (err) {
+      console.error('Eroare la ștergerea utilizatorului:', err);
+      return res.status(500).json({ success: false, error: 'Eroare la server.' });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Utilizatorul nu există.' });
+    }
+
+    res.json({ success: true, message: 'Contul a fost șters cu succes!' });
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Serverul funcționează pe http://localhost:${PORT}`);
 });

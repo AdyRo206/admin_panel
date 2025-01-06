@@ -23,7 +23,7 @@
       <button type="submit" class="login-btn">Login</button>
       <div class="login-links">
         <a href="#">Reseteaza parola</a> 
-        <a href="#">Creaza cont</a>
+        <a href="register.html">Creaza cont</a>
       </div>
     </form>
   </div>
@@ -53,7 +53,6 @@
       localStorage.setItem('firstName', result.user.firstName);
       localStorage.setItem('lastName', result.user.lastName);    
       localStorage.setItem('role', result.user.role); 
-      alert('Autentificare reușită!');
       window.location.href = 'index.html'; 
     } else {
       document.getElementById('error').textContent = result.error;
