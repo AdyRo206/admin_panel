@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Înregistrare</title>
+</head>
+<body>
+    <h2>Înregistrare utilizator</h2>
+    <form id="registerForm">
+        <label for="username">Username:</label>
+        <input type="text" id="username" required><br><br>
+
+        <label for="password">Parola:</label>
+        <input type="password" id="password" required><br><br>
+
+        <label for="firstName">Prenume:</label>
+        <input type="text" id="firstName" required><br><br>
+
+        <label for="lastName">Nume:</label>
+        <input type="text" id="lastName" required><br><br>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" required><br><br>
+
+        <button type="submit">Înregistrează-te</button>
+    </form>
+
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const email = document.getElementById('email').value;
+
+            try {
+                const response = await fetch('http://localhost:5501/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username,
+                        password,
+                        firstName,
+                        lastName,
+                        email
+                    }),
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    alert('Înregistrare reușită! Așteaptă aprobare.');
+                    window.location.href = 'login.html'; // Poți redirecționa utilizatorul spre pagina de login
+                } else {
+                    alert(result.error || 'Eroare la înregistrare!');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Eroare la conectare!');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="header">
+            <span><img src="assets/logo.png" alt="logo" width="50px"></span>
+            <button id="toggleSidebar">
+                <span class="material-symbols-outlined icon">menu</span>
+            </button>            
+        </div>
+        <nav>
+            <a href="#" class="active ico"><span class="material-symbols-outlined">
+                home
+                </span><span class="text">Dashboard</span></a>
+            <div class="dropdown" id="dropdown">
+                <div class="dropdown-btn ico"><span class="material-symbols-outlined">
+                    production_quantity_limits
+                    </span>
+                    <span class="text">Produse</span> <span id="dropdownArrow" class="material-symbols-outlined">
+                        chevron_right
+                        </span></div>
+                <div class="dropdown-content">
+                    <a href="#">Toate produsele</a>
+                    <a href="#">Adauga produs nou</a>
+                </div>
+            </div>
+            <div class="dropdown" id="dropdown">
+                <div class="dropdown-btn ico"><span class="material-symbols-outlined">
+                    content_copy
+                    </span><span class="text">Comenzi</span> <span id="dropdownArrow" class="material-symbols-outlined">
+                        chevron_right
+                        </span></div>
+                <div class="dropdown-content">
+                    <a href="#">Toate comenzile</a>
+                    <a href="#">Comenzi noi</a>
+                    <a href="#">Comenzi in procesare</a>
+                </div>
+            </div>
+            <a href="#" class="ico"><span class="material-symbols-outlined">
+                inventory_2
+                </span><span class="text">Stocuri</span></a>
+            <div class="dropdown" id="dropdown">
+                <div class="dropdown-btn ico"><span class="material-symbols-outlined">
+                    donut_large
+                    </span>
+                    <span class="text">Rapoarte</span> <span id="dropdownArrow" class="material-symbols-outlined">
+                        chevron_right
+                        </span></div>
+                    
+                <div class="dropdown-content">
+                    <a href="#">Vanzari lunare</a>
+                    <a href="#">Cele mai vandute produse</a>
+                </div>
+            </div>
+            <a href="users.html" class="ico"><span class="material-symbols-outlined">person</span><span class="text">Clienti</span></a>
+
+            <div id="admin-section">
+                <div class="dropdown" id="dropdown">
+                    <div class="dropdown-btn ico"><span class="material-symbols-outlined">
+                        content_copy
+                        </span><span class="text">Administrativ</span> <span id="dropdownArrow" class="material-symbols-outlined">
+                            chevron_right
+                            </span></div>
+                    <div class="dropdown-content">
+                        <a href="#">Toti utilizatorii</a>
+                        <a href="#">Cereri noi</a>
+                        <a href="#">Logs</a>
+                
+                    </div>
+                </div>
+            </div>
+                
+            <a href="#" class="ico"><span class="material-symbols-outlined">
+                settings
+                </span><span class="text">Setari magazin</span></a>
+        </nav>
+        <div class="profile">
+            <div class="up_part">
+                <img id="profilePic" src="assets/profile_pic.jpg" alt="Profile Pic"> 
+                <span id="welcomeMessage" class="text">Username</span>
+            </div>
+            <div class="down_part">
+                <span class="material-symbols-outlined"> logout </span>
+                <button id="logout">Logout</button>
+            </div>
+        </div>
+        
+    </aside>
+
+    <div class="main-content" id="mainContent">
+        <header>
+            <h1>Admin Panel</h1>
+            <div class="profile">
+                <img src="assets/profile_pic.jpg" alt="Profile Pic">
+                <div id="Name">firstName lastName</div>
+            </div>
+            <div class="actions">
+                <button id="DarkMode"><span class="material-symbols-outlined">
+                    bedtime
+                    </span></button>
+                    <button><span class="material-symbols-outlined">
+                        notifications
+                        </span></button>
+            </div>
+        </header>
+
+        <main>
+            <div class="cards">
+                <div class="card">
+                    <canvas id="salesPointLineChart1" width="400" height="200"></canvas>
+                </div>
+                <div class="card"><canvas id="salesPointLineChart2" width="400" height="200"></canvas></div>
+                <div class="card"><canvas id="ageCategoryDoughnut" width="400" height="200"></canvas></div>
+            </div>
+
+            
+        </main>
+
+    </div>
+    
+    
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const role = localStorage.getItem('role');
+        
+        if (role !== 'admin') {
+            const adminSection = document.getElementById('admin-section');
+            if (adminSection) {
+                adminSection.classList.add('hidden');
+            }
+        }
+    });
+    document.querySelectorAll('.dropdown').forEach(dropdown => {
+        const dropdownBtn = dropdown.querySelector('.dropdown-btn');
+        dropdownBtn.addEventListener('click', () => {
+            dropdown.classList.toggle('open');
+        });
+    });
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+    window.onload = function() {
+        const username = localStorage.getItem('username');
+        const profilePic = localStorage.getItem('profilePic');
+        const firstName = localStorage.getItem('firstName');  
+        const lastName = localStorage.getItem('lastName');
+
+        if (firstName && lastName) {
+            const name = document.getElementById('Name');
+            name.textContent = `${firstName} ${lastName}`;
+        }
+
+        if (username && profilePic) {
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            const profilePicElement = document.getElementById('profilePic');
+            
+            welcomeMessage.textContent = `Bun venit, ${username}!`;
+            profilePicElement.src = profilePic; 
+        }
+    };
+
+        document.getElementById('logout').addEventListener('click', function() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('role');
+            localStorage.removeItem('username');
+            localStorage.removeItem('firstName');
+            localStorage.removeItem('lastName');
+            localStorage.removeItem('profilePic');
+            window.location.href = 'login.html';  //
+        });
+</script>
+
+</body>
+</html>
+
+
+<script src="../scripts/nav.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+  rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="../scripts/dark_mode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="scripts/chart/salesdata.js"></script>
+<script src="scripts/chart/salesdata2.js"></script>
+<script src="scripts/chart/salesdata3.js"></script>
+<script src="scripts/chart/test.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jwt-decode"></script>
