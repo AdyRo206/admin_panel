@@ -1,24 +1,33 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const db = require('./db');
 const path = require('path');
 const cors = require('cors');
 
 const app = express();
 const PORT = 5501;
 
-const ADMIN_PIN = process.env.ADMIN_PIN || '1234'; // PIN default
+// PIN pentru rute admin
+const ADMIN_PIN = process.env.ADMIN_PIN || '1234'; 
 
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 
-app.get('/', (req, res) => {
-  res.send('Serverul Node.js funcționează corect!');
-});
+// User hardcodat (mock)
+const mockUser = {
+  id: 1,
+  username: 'admin',
+  password: 'parola123', // parola simplă, pentru testare
+  first_name: 'Test',
+  last_name: 'User',
+  email: 'admin@example.com',
+  role: 'admin',
+  is_approved: true,
+  profilePic: ''
+};
 
+// Middleware pentru autentificare admin
 function authenticateAdmin(req, res, next) {
   const token = req.headers['authorization'];
 
@@ -27,24 +36,21 @@ function authenticateAdmin(req, res, next) {
   }
 
   jwt.verify(token, 'secret_key', (err, decoded) => {
-    if (err) {
-      return res.status(403).json({ success: false, error: 'Token invalid.' });
+    if (err || decoded.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Acces interzis.' });
     }
 
-    if (decoded.role !== 'admin') {
-      return res.status(403).json({ success: false, error: 'Nu ai permisiunea de a accesa această resursă.' });
-    }
-
-    req.user = decoded;  
+    req.user = decoded;
     next();
   });
 }
 
+// Middleware pentru autentificare generală
 function authenticateAdminOrUser(req, res, next) {
   const token = req.headers['authorization'];
 
   if (!token) {
-    return res.redirect('/login.html'); 
+    return res.redirect('/login.html');
   }
 
   jwt.verify(token, 'secret_key', (err, decoded) => {
@@ -57,109 +63,40 @@ function authenticateAdminOrUser(req, res, next) {
   });
 }
 
+// Ruta de test
+app.get('/', (req, res) => {
+  res.send('✅ Serverul mock funcționează!');
+});
+
+// Login fără DB
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
 
-  if (!username || !password) {
-    return res.status(400).json({ success: false, error: 'Username și parola sunt obligatorii!' });
-  }
+  if (username === mockUser.username && password === mockUser.password) {
+    const token = jwt.sign({ id: mockUser.id, role: mockUser.role }, 'secret_key', { expiresIn: '1h' });
 
-  const query = 'SELECT * FROM users WHERE username = ? LIMIT 1';
-  db.query(query, [username], (err, results) => {
-    if (err) {
-      console.error('Eroare la baza de date:', err);
-      return res.status(500).json({ success: false, error: 'Eroare la server.' });
-    }
-
-    if (results.length === 0) {
-      return res.status(401).json({ success: false, error: 'Username sau parola incorecte!' });
-    }
-
-    const user = results[0];
-
-    if (!user.is_approved) {
-      return res.status(403).json({ success: false, error: 'Contul tău nu a fost încă aprobat.' });
-    }
-
-    bcrypt.compare(password, user.password, (err, isMatch) => {
-      if (err) {
-        console.error('Eroare la compararea parolei:', err);
-        return res.status(500).json({ success: false, error: 'Eroare la server.' });
-      }
-
-      if (isMatch) {
-        const token = jwt.sign({ id: user.id, role: user.role }, 'secret_key', { expiresIn: '1h' });
-
-        return res.json({
-          success: true,
-          token,
-          user: {
-            username: user.username,
-            profilePic: user.profilePic || 'assets/profile_pic.jpg',
-            firstName: user.first_name,
-            lastName: user.last_name,
-            role: user.role,
-          },
-        });
-      } else {
-        return res.status(401).json({ success: false, error: 'Username sau parola incorecte!' });
-      }
+    return res.json({
+      success: true,
+      token,
+      user: {
+        username: mockUser.username,
+        profilePic: mockUser.profilePic || 'assets/profile_pic.jpg',
+        firstName: mockUser.first_name,
+        lastName: mockUser.last_name,
+        role: mockUser.role,
+      },
     });
-  });
+  } else {
+    return res.status(401).json({ success: false, error: 'Username sau parola incorecte!' });
+  }
 });
 
-app.post('/register', (req, res) => {
-  const { username, password, firstName, lastName, email } = req.body;
-
-  if (!username || !password || !firstName || !lastName || !email) {
-    return res.status(400).json({ success: false, error: 'Toate câmpurile sunt obligatorii!' });
-  }
-
-  const queryCheck = 'SELECT * FROM users WHERE username = ? LIMIT 1';
-  db.query(queryCheck, [username], (err, results) => {
-    if (err) {
-      console.error('Eroare la verificarea utilizatorului:', err);
-      return res.status(500).json({ success: false, error: 'Eroare la server.' });
-    }
-
-    if (results.length > 0) {
-      return res.status(409).json({ success: false, error: 'Utilizatorul există deja!' });
-    }
-
-    const role = 'user';
-    const isApproved = false; 
-
-    const query = 'INSERT INTO users (username, password, first_name, last_name, email, role, is_approved) VALUES (?, ?, ?, ?, ?, ?, ?)';
-    bcrypt.hash(password, 10, (err, hashedPassword) => {
-      if (err) {
-        console.error('Eroare la criptarea parolei:', err);
-        return res.status(500).json({ success: false, error: 'Eroare la server.' });
-      }
-
-      db.query(query, [username, hashedPassword, firstName, lastName, email, role, isApproved], (err, result) => {
-        if (err) {
-          console.error('Eroare la înregistrarea utilizatorului:', err);
-          return res.status(500).json({ success: false, error: 'Eroare la server.' });
-        }
-
-        res.status(201).json({ success: true, message: 'Utilizator înregistrat cu succes!' });
-      });
-    });
-  });
-});
-
+// Ruta protejată – doar admin
 app.get('/users', authenticateAdmin, (req, res) => {
-  const query = 'SELECT * FROM users ORDER BY id DESC';
-  db.query(query, (err, results) => {
-    if (err) {
-      console.error('Eroare la obținerea utilizatorilor:', err);
-      return res.status(500).json({ success: false, error: 'Eroare la server.' });
-    }
-
-    res.json({ success: true, users: results });
-  });
+  res.json({ success: true, users: [mockUser] });
 });
 
+// Resetare parolă (mock)
 app.post('/reset-password', authenticateAdmin, (req, res) => {
   const { userId, newPassword, pin } = req.body;
 
@@ -168,31 +105,14 @@ app.post('/reset-password', authenticateAdmin, (req, res) => {
   }
 
   if (!userId || !newPassword) {
-    return res.status(400).json({ success: false, message: "Datele trimise sunt invalide." });
+    return res.status(400).json({ success: false, message: "Date invalide." });
   }
 
-  bcrypt.hash(newPassword, 10, (err, hashedPassword) => {
-    if (err) {
-      console.error('Eroare la criptarea parolei:', err);
-      return res.status(500).json({ success: false, message: 'Eroare la server.' });
-    }
-
-    const query = 'UPDATE users SET password = ? WHERE id = ?';
-    db.query(query, [hashedPassword, userId], (err, result) => {
-      if (err) {
-        console.error('Eroare la actualizarea parolei:', err);
-        return res.status(500).json({ success: false, error: 'Eroare la server.' });
-      }
-
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ success: false, message: 'Utilizatorul nu a fost găsit.' });
-      }
-
-      res.json({ success: true, message: 'Parola a fost actualizată cu succes.' });
-    });
-  });
+  // Doar simulează
+  res.json({ success: true, message: 'Parola a fost resetată (mock).' });
 });
 
+// Schimbare rol
 app.post('/toggle-role', authenticateAdmin, (req, res) => {
   const { userId, newRole, pin } = req.body;
 
@@ -200,25 +120,10 @@ app.post('/toggle-role', authenticateAdmin, (req, res) => {
     return res.status(403).json({ success: false, message: "PIN incorect." });
   }
 
-  if (!userId || !newRole) {
-    return res.status(400).json({ success: false, message: "Datele trimise sunt invalide." });
-  }
-
-  const query = 'UPDATE users SET role = ? WHERE id = ?';
-  db.query(query, [newRole, userId], (err, result) => {
-    if (err) {
-      console.error('Eroare la schimbarea rolului:', err);
-      return res.status(500).json({ success: false, error: 'Eroare la server.' });
-    }
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: 'Utilizatorul nu a fost găsit.' });
-    }
-
-    res.json({ success: true, message: `Rolul utilizatorului a fost schimbat în ${newRole}.` });
-  });
+  res.json({ success: true, message: `Rolul utilizatorului a fost schimbat în ${newRole} (mock).` });
 });
 
+// Aprobare user
 app.post('/toggle-approval', authenticateAdmin, (req, res) => {
   const { userId, newStatus, pin } = req.body;
 
@@ -226,47 +131,25 @@ app.post('/toggle-approval', authenticateAdmin, (req, res) => {
     return res.status(403).json({ success: false, message: "PIN incorect." });
   }
 
-  if (!userId || typeof newStatus !== 'boolean') {
-    return res.status(400).json({ success: false, message: "Datele trimise sunt invalide." });
-  }
-
-  const query = 'UPDATE users SET is_approved = ? WHERE id = ?';
-  db.query(query, [newStatus, userId], (err, result) => {
-    if (err) {
-      console.error('Eroare la aprobarea utilizatorului:', err);
-      return res.status(500).json({ success: false, error: 'Eroare la server.' });
-    }
-
-    res.json({ success: true, message: `Statusul utilizatorului a fost actualizat.` });
-  });
+  res.json({ success: true, message: `Statusul utilizatorului a fost actualizat la ${newStatus} (mock).` });
 });
 
+// Ștergere utilizator
 app.delete('/delete-user', authenticateAdmin, (req, res) => {
   const { userId, pin } = req.body;
 
   if (!userId || !pin) {
-    return res.status(400).json({ success: false, message: 'ID-ul utilizatorului și PIN-ul sunt obligatorii.' });
+    return res.status(400).json({ success: false, message: 'ID-ul și PIN-ul sunt obligatorii.' });
   }
 
   if (pin !== ADMIN_PIN) {
     return res.status(403).json({ success: false, message: 'PIN incorect.' });
   }
 
-  const query = 'DELETE FROM users WHERE id = ?';
-  db.query(query, [userId], (err, result) => {
-    if (err) {
-      console.error('Eroare la ștergerea utilizatorului:', err);
-      return res.status(500).json({ success: false, error: 'Eroare la server.' });
-    }
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: 'Utilizatorul nu există.' });
-    }
-
-    res.json({ success: true, message: 'Contul a fost șters cu succes!' });
-  });
+  res.json({ success: true, message: 'Utilizatorul a fost șters (mock).' });
 });
 
+// Pornire server
 app.listen(PORT, () => {
-  console.log(`Serverul funcționează pe http://localhost:${PORT}`);
+  console.log(`🚀 Serverul mock funcționează pe http://localhost:${PORT}`);
 });
